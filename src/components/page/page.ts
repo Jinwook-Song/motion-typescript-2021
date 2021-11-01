@@ -16,6 +16,7 @@ interface SectionContainer extends Component, Composable {
   setOnDragStateListener(listener: OnDragStateListener<SectionContainer>): void;
   muteChildren(state: "mute" | "unmute"): void;
   getBoundingRect(): DOMRect;
+  onDropped(): void;
 }
 
 type SectionContainerConstructor = {
@@ -55,15 +56,23 @@ export class PageItemComponent
   }
   onDragStart(_: DragEvent) {
     this.notifyObservers("start");
+    this.element.classList.add("lifted");
   }
   onDragEnd(_: DragEvent) {
     this.notifyObservers("end");
+    this.element.classList.remove("lifted");
   }
   onDragEnter(_: DragEvent) {
     this.notifyObservers("enter");
+    this.element.classList.add("drop-area");
   }
   onDragLeave(_: DragEvent) {
     this.notifyObservers("leave");
+    this.element.classList.remove("drop-area");
+  }
+
+  onDropped() {
+    this.element.classList.remove("drop-area");
   }
 
   notifyObservers(state: DragState) {
@@ -115,11 +124,9 @@ export class PageComponent
   }
   onDragOver(event: DragEvent) {
     event.preventDefault();
-    console.log("over", event);
   }
   onDrop(event: DragEvent) {
     event.preventDefault();
-    console.log("drop", event);
     // 여기에서 위치를 바꿔준다
     if (!this.dropTarget) {
       return;
@@ -133,6 +140,7 @@ export class PageComponent
         dropY < srcElementY ? "beforebegin" : "afterend"
       );
     }
+    this.dropTarget.onDropped();
   }
 
   addChild(section: Component) {
