@@ -5,9 +5,15 @@ export interface Composable {
 }
 
 type OnCloseListener = () => void;
+type DragState = "start" | "end" | "enter" | "leave";
+type OnDragStateListener<T extends Component> = (
+  target: T,
+  state: DragState
+) => void;
 
 interface SectionContainer extends Component, Composable {
   setOnCloseListener(listener: OnCloseListener): void;
+  setOnDragStateListener(listener: OnDragStateListener<SectionContainer>): void;
 }
 
 type SectionContainerConstructor = {
@@ -19,6 +25,8 @@ export class PageItemComponent
   implements SectionContainer
 {
   private closeListener?: OnCloseListener;
+  private dragStateListener?: OnDragStateListener<PageItemComponent>;
+
   constructor() {
     super(`<li draggable="true" class="page-item">
             <section class="page-item__body"></section>
@@ -36,12 +44,28 @@ export class PageItemComponent
     this.element.addEventListener("dragend", (event: DragEvent) => {
       this.onDragEnd(event);
     });
+    this.element.addEventListener("dragenter", (event: DragEvent) => {
+      this.onDragEnter(event);
+    });
+    this.element.addEventListener("dragleave", (event: DragEvent) => {
+      this.onDragLeave(event);
+    });
   }
-  onDragStart(event: DragEvent) {
-    console.log("start", event);
+  onDragStart(_: DragEvent) {
+    this.notifyObservers("start");
   }
-  onDragEnd(event: DragEvent) {
-    console.log("end", event);
+  onDragEnd(_: DragEvent) {
+    this.notifyObservers("end");
+  }
+  onDragEnter(_: DragEvent) {
+    this.notifyObservers("enter");
+  }
+  onDragLeave(_: DragEvent) {
+    this.notifyObservers("leave");
+  }
+
+  notifyObservers(state: DragState) {
+    this.dragStateListener && this.dragStateListener(this, state);
   }
 
   addChild(child: Component) {
@@ -50,9 +74,11 @@ export class PageItemComponent
     )! as HTMLElement;
     child.attachTo(container);
   }
-
   setOnCloseListener(listener: OnCloseListener) {
     this.closeListener = listener;
+  }
+  setOnDragStateListener(listener: OnDragStateListener<PageItemComponent>) {
+    this.dragStateListener = listener;
   }
 }
 
@@ -85,5 +111,10 @@ export class PageComponent
     item.setOnCloseListener(() => {
       item.removeFrom(this.element);
     });
+    item.setOnDragStateListener(
+      (target: SectionContainer, state: DragState) => {
+        console.log(target, state);
+      }
+    );
   }
 }
